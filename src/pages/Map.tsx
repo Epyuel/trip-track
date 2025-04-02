@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import TripForm from "../components/TripForm/TripForm";
-
+import Map from '../components/Map/map'
 
 export default function MapPage() {
   const [isPanelOpen, setIsPanelOpen] = useState(true);
@@ -22,7 +22,7 @@ export default function MapPage() {
     <div className="relative h-screen w-full overflow-hidden bg-background no-scrollbar">
       {/* Map Component */}
       <div className="absolute inset-0 z-0">
-        {/* <Map /> */}
+        <Map />
       </div>
 
       {/* Trip Details Panel */}
