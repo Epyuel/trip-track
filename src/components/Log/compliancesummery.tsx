@@ -6,13 +6,6 @@ import { Separator } from "../../ui/separator"
 import { LogEntry, Logs } from "../../types/log"
 import { getLogsByDateRange } from "../../service/log"
 
-type ExtendedLogEntry = LogEntry & {
-  day:string,
-  date:number,
-  month:number,
-  year:number
-}
-
 type ComplianceData = {
   drivingHours: {
     used:number,
@@ -36,6 +29,7 @@ const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Sat
 
 export function ComplianceSummary({date,selectedDateLogs}:{date:Date,selectedDateLogs:LogEntry[]}) {
   const [weeklyLogs,setWeeklyLogs] = useState<Logs[]>([]);
+  const [last8daysLogs,setLast8daysLogs] = useState<Logs[]>([]);
   const [complianceData,setComplianceData] = useState<ComplianceData>({
     drivingHours: {
       used: 0,
@@ -57,10 +51,14 @@ export function ComplianceSummary({date,selectedDateLogs}:{date:Date,selectedDat
 
   const fetchData = useCallback(async ()=>{
     const start = new Date(date);
-    start.setDate(start.getDate()-7) 
+    start.setDate(start.getDate()-8) 
     const logs = await getLogsByDateRange(start.toISOString().split("T")[0],date.toISOString().split("T")[0]);
-
-    if(logs) setWeeklyLogs(logs)
+    
+    if(logs) {
+      setLast8daysLogs(logs);
+      // Filter-out the 8th day(we only want 7 days for the weeklyLogs) 
+      setWeeklyLogs(logs.filter((l)=> new Date(l.date).getTime()>start.getTime()));
+    }
   },[date])
 
   useEffect(()=>{
@@ -68,28 +66,20 @@ export function ComplianceSummary({date,selectedDateLogs}:{date:Date,selectedDat
   },[fetchData])
 
   useEffect(()=>{
-    const savedLogs:ExtendedLogEntry[] = []
-    const iDaysBefore = new Date(date);
-    // console.log(weeklyLogs);
-    for (let i=0; i<=7;i++){
-      iDaysBefore.setDate(iDaysBefore.getDate()-i);
-
-      // const logs = localStorage.getItem(`driver-logs-${iDaysBefore.toISOString().split("T")[0]}`);
-      const logEntry = weeklyLogs.find(wl=> wl.date==iDaysBefore.toISOString().split("T")[0])?.logEntry??[];
-      if(logEntry){
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const log:ExtendedLogEntry[] = (iDaysBefore.getDate()==date.getDate() && iDaysBefore.getMonth()==date.getMonth() && iDaysBefore.getFullYear()==date.getFullYear() ? (selectedDateLogs as any).map((log:LogEntry)=>({...log, day: iDaysBefore.toLocaleDateString('en-US',{weekday:'long'}),date:iDaysBefore.getDate(),month:iDaysBefore.getMonth(),year:iDaysBefore.getFullYear()})): logEntry).map((log:LogEntry)=>{
-          return {...log, day: iDaysBefore.toLocaleDateString('en-US',{weekday:'long'}), date:iDaysBefore.getDate(),month:iDaysBefore.getMonth(),year:iDaysBefore.getFullYear()}
-        })
-
-        savedLogs.push(...log);
-      }
-    }
-
-    // setLogEntry(savedLogs);
-    const used = savedLogs.reduce((acc,sl)=>acc +  (sl.status && sl.status == 1? sl.duration:0),0)
+    const used = last8daysLogs.flatMap((log) => 
+      log.logEntry.map(entry => ({
+          day: new Date(log.date).toLocaleDateString('en-US', { weekday: 'long' }),
+          ...entry
+      }))
+    ).reduce((acc,sl)=>acc +  (sl.status && sl.status == 1? sl.duration:0),0);
+ 
     const today = date.toLocaleDateString('en-US',{weekday:'long'});
-    const thisWeek = savedLogs.filter((val)=>daysOfWeek.indexOf(today) > daysOfWeek.indexOf(val.day) || (date.getDate()==val.date&&date.getMonth()==val.month&&date.getFullYear()==val.year));
+    const thisWeek = weeklyLogs.flatMap((log) => 
+        log.logEntry.map(entry => ({
+            day: new Date(log.date).toLocaleDateString('en-US', { weekday: 'long' }),
+            ...entry
+        }))
+    );
 
     const complianceData = {
       drivingHours: {
@@ -175,7 +165,7 @@ export function ComplianceSummary({date,selectedDateLogs}:{date:Date,selectedDat
 
     setComplianceData(complianceData)
 
-  },[date, selectedDateLogs])
+  },[date, last8daysLogs, selectedDateLogs, weeklyLogs])
 
   // Sample compliance data
   // const complianceData = {

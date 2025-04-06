@@ -365,9 +365,9 @@ export function LogChart({logData,setLogData,date = new Date() }: LogChartProps)
             className="border rounded-lg p-4 min-w-[700px]"
           >
             <div className="flex justify-between items-center mb-4">
-              <div className="text-center font-bold text-lg">
+              <div className="font-bold text-lg">
                 Driver&apos;s Duty Log {nextLoading?<span className="ml-3"><Spin indicator={<LoadingOutlined spin />}  /></span>:<></>}
-                <div className="text-sm font-normal text-gray-500">{date ? date.toLocaleDateString() : "Today"}</div>
+                <div className="text-sm font-normal text-gray-500">{date ?<>{date.toLocaleDateString('en-US',{weekday:'long'})} - {date.toLocaleDateString()}</> : "Today"}</div>
               </div>
               <div className="flex gap-2">
                 <Button
