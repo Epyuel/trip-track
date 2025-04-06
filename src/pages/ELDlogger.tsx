@@ -64,7 +64,7 @@ export default function ELDLogger() {
                   <CardTitle>Daily Log Chart</CardTitle>
                   <CardDescription>24-hour timeline showing duty status changes</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="overflow-x-scroll !pr-5 !mr-5">
                   <LogChart date={date} logData={logData} setLogData={setLogData} />
                 </CardContent>
               </Card>

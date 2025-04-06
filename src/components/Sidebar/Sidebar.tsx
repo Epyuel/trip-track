@@ -83,7 +83,7 @@ const Sidebar: React.FC<Props> = ({ open, onClose, collapse, onCollapse }) => {
         onClick={onClose}
         aria-label="Sidebar-Close-Icon"
       >
-        <HiX className="h-[40px] w-[40px]" />
+        <HiX className="h-[20px] w-[20px] text-gray-500" />
       </span>
 
       <div className={`h-[110px] w-full flex items-center px-6 overflow-hidden`}>

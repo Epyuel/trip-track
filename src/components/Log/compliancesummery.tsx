@@ -1,9 +1,10 @@
 import { motion } from "framer-motion"
 import { Info } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../ui/tooltip"
-import { useEffect, useState } from "react"
-import { LogEntry } from "./log-chart"
+import { useCallback, useEffect, useState } from "react"
 import { Separator } from "../../ui/separator"
+import { LogEntry, Logs } from "../../types/log"
+import { getLogsByDateRange } from "../../service/log"
 
 type ExtendedLogEntry = LogEntry & {
   day:string,
@@ -34,7 +35,7 @@ type ComplianceData = {
 const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday","Sunday"];
 
 export function ComplianceSummary({date,selectedDateLogs}:{date:Date,selectedDateLogs:LogEntry[]}) {
-
+  const [weeklyLogs,setWeeklyLogs] = useState<Logs[]>([]);
   const [complianceData,setComplianceData] = useState<ComplianceData>({
     drivingHours: {
       used: 0,
@@ -54,16 +55,30 @@ export function ComplianceSummary({date,selectedDateLogs}:{date:Date,selectedDat
     },
   });
 
+  const fetchData = useCallback(async ()=>{
+    const start = new Date(date);
+    start.setDate(start.getDate()-7) 
+    const logs = await getLogsByDateRange(start.toISOString().split("T")[0],date.toISOString().split("T")[0]);
+
+    if(logs) setWeeklyLogs(logs)
+  },[date])
+
+  useEffect(()=>{
+    fetchData()
+  },[fetchData])
+
   useEffect(()=>{
     const savedLogs:ExtendedLogEntry[] = []
+    const iDaysBefore = new Date(date);
+    // console.log(weeklyLogs);
     for (let i=0; i<=7;i++){
-      const iDaysBefore = new Date(date);
       iDaysBefore.setDate(iDaysBefore.getDate()-i);
 
-      const logs = localStorage.getItem(`driver-logs-${iDaysBefore.toISOString().split("T")[0]}`);
-      if(logs){
+      // const logs = localStorage.getItem(`driver-logs-${iDaysBefore.toISOString().split("T")[0]}`);
+      const logEntry = weeklyLogs.find(wl=> wl.date==iDaysBefore.toISOString().split("T")[0])?.logEntry??[];
+      if(logEntry){
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const log:ExtendedLogEntry[] = (iDaysBefore.getDate()==date.getDate() && iDaysBefore.getMonth()==date.getMonth() && iDaysBefore.getFullYear()==date.getFullYear() ? (selectedDateLogs as any).map((log:LogEntry)=>({...log, day: iDaysBefore.toLocaleDateString('en-US',{weekday:'long'}),date:iDaysBefore.getDate(),month:iDaysBefore.getMonth(),year:iDaysBefore.getFullYear()})): JSON.parse(logs)).map((log:LogEntry)=>{
+        const log:ExtendedLogEntry[] = (iDaysBefore.getDate()==date.getDate() && iDaysBefore.getMonth()==date.getMonth() && iDaysBefore.getFullYear()==date.getFullYear() ? (selectedDateLogs as any).map((log:LogEntry)=>({...log, day: iDaysBefore.toLocaleDateString('en-US',{weekday:'long'}),date:iDaysBefore.getDate(),month:iDaysBefore.getMonth(),year:iDaysBefore.getFullYear()})): logEntry).map((log:LogEntry)=>{
           return {...log, day: iDaysBefore.toLocaleDateString('en-US',{weekday:'long'}), date:iDaysBefore.getDate(),month:iDaysBefore.getMonth(),year:iDaysBefore.getFullYear()}
         })
 

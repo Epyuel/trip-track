@@ -1,6 +1,6 @@
 
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Dialog,
@@ -15,7 +15,9 @@ import { Input } from "../../ui/input"
 import { Label } from "../../ui/label"
 import { Button } from "../../ui/button"
 import { Save, Trash2, Plus, Clock } from "lucide-react"
-import { message } from "antd";
+import { message, Spin } from "antd";
+import { createLog, getLogsByDate, updateLog } from "../../service/log"
+import { LoadingOutlined } from '@ant-design/icons';
 
 export type LogEntry = {
   hour: string
@@ -54,6 +56,8 @@ export function LogChart({logData,setLogData,date = new Date() }: LogChartProps)
     offDuty: 0,
   })
   const chartRef = useRef<HTMLDivElement>(null)
+  const [nextLoading, setNextLoading] = useState(true);
+  const [saveLoading, setSaveLoading] = useState(false);
 
   // Calculate totals whenever logData changes
   useEffect(() => {
@@ -266,18 +270,29 @@ export function LogChart({logData,setLogData,date = new Date() }: LogChartProps)
       endTime: "01:00",
     })
 
-    message.success("Log entry added")
+    message.success("Log entry added, make sure to save")
   }
 
   // Save logs to localStorage
-  const handleSaveLogs = () => {
-    try {
-      localStorage.setItem(`driver-logs-${date.toISOString().split("T")[0]}`, JSON.stringify(logData))
+  const handleSaveLogs = async () => {
+    setSaveLoading(true);
+    const log = await getLogsByDate(date.toISOString().split("T")[0])
+    let res:boolean;
+    if(log){
+      res = await updateLog(log.id??'',logData)
+    }else{
+      res = await createLog({
+        date: date.toISOString().split("T")[0],
+        logEntry: logData
+      })
+    }
+
+    if(res){
       message.success("Logs saved")
-    } catch (error) {
-      console.log(error)
+    }else{
       message.error("Error saving logs")
     }
+    setSaveLoading(false);
   }
 
   // Clear all logs
@@ -299,37 +314,39 @@ export function LogChart({logData,setLogData,date = new Date() }: LogChartProps)
 
     setLogData(emptyLogs)
 
-    message.success("Logs cleared")
+    message.success("Logs cleared, make sure to save")
   }
+
+  const loadLogData = useCallback(async (date:Date)=>{
+    setNextLoading(true);
+    const logs = await getLogsByDate(date.toISOString().split("T")[0]);
+    if(logs && logs) setLogData(logs?.logEntry??[])
+    else{
+      const hours = Array.from({ length: 24 }, (_, i) => {
+        const hourStr = i < 12 ? `${i === 0 ? 12 : i} AM` : `${i === 12 ? 12 : i - 12} PM`
+
+        return {
+          hour: hourStr,
+          hourIndex: i,
+          status: null, // Empty status
+          duration: 1,
+          location: "",
+          startTime: `${i.toString().padStart(2, "0")}:00`,
+          endTime: `${(i + 1).toString().padStart(2, "0")}:00`,
+        }
+      })
+
+      setLogData(hours)
+    }
+    setNextLoading(false);
+  },[setLogData])
 
   // Load saved logs on mount
   useEffect(() => {
-    try {
-      const savedLogs = localStorage.getItem(`driver-logs-${date.toISOString().split("T")[0]}`)
-      if (savedLogs!=null) {
-        setLogData(JSON.parse(savedLogs))
-        
-      }else{
-        const hours = Array.from({ length: 24 }, (_, i) => {
-          const hourStr = i < 12 ? `${i === 0 ? 12 : i} AM` : `${i === 12 ? 12 : i - 12} PM`
-    
-          return {
-            hour: hourStr,
-            hourIndex: i,
-            status: null, // Empty status
-            duration: 1,
-            location: "",
-            startTime: `${i.toString().padStart(2, "0")}:00`,
-            endTime: `${(i + 1).toString().padStart(2, "0")}:00`,
-          }
-        })
+    loadLogData(date)
+  }, [date, loadLogData, setLogData])
 
-        setLogData(hours)
-      }
-    } catch (error) {
-      console.error("Error loading saved logs:", error)
-    }
-  }, [date, setLogData])
+  
 
 
   return (
@@ -345,11 +362,11 @@ export function LogChart({logData,setLogData,date = new Date() }: LogChartProps)
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="border rounded-lg p-4"
+            className="border rounded-lg p-4 min-w-[700px]"
           >
             <div className="flex justify-between items-center mb-4">
               <div className="text-center font-bold text-lg">
-                Driver&apos;s Duty Log
+                Driver&apos;s Duty Log {nextLoading?<span className="ml-3"><Spin indicator={<LoadingOutlined spin />}  /></span>:<></>}
                 <div className="text-sm font-normal text-gray-500">{date ? date.toLocaleDateString() : "Today"}</div>
               </div>
               <div className="flex gap-2">
@@ -364,18 +381,19 @@ export function LogChart({logData,setLogData,date = new Date() }: LogChartProps)
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleSaveLogs}
-                  className="flex items-center gap-1 text-blue-600 border-blue-600 hover:bg-blue-50"
-                >
-                  <Save className="h-4 w-4" /> Save
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
                   onClick={handleClearLogs}
                   className="flex items-center gap-1 text-red-500 hover:text-red-700 border-red-500"
                 >
                   <Trash2 className="h-4 w-4" /> Clear
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  loading={saveLoading}
+                  onClick={handleSaveLogs}
+                  className="flex items-center gap-1 text-blue-600 border-blue-600 hover:bg-blue-50"
+                >
+                  <Save className="h-4 w-4" /> Save
                 </Button>
               </div>
             </div>

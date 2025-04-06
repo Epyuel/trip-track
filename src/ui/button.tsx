@@ -2,6 +2,8 @@ import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "../lib/utils"
+import { Spin } from "antd"
+import { LoadingOutlined } from '@ant-design/icons';
 
 
 const buttonVariants = cva(
@@ -35,25 +37,26 @@ const buttonVariants = cva(
   }
 )
 
-function Button({
-  className,
-  variant,
-  size,
-  asChild = false,
-  ...props
-}: React.ComponentProps<"button"> &
+function Button({ className, variant, size, asChild = false, loading = false, ...props }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
-    asChild?: boolean
+    asChild?: boolean,
+    loading?:boolean
   }) {
-  const Comp = asChild ? Slot : "button"
+  const Comp = asChild ? Slot : "button";
 
   return (
     <Comp
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      disabled={loading || props.disabled} // Disable the button when loading
+      className={cn(
+        buttonVariants({ variant, size, className }),
+        loading && "opacity-50 cursor-not-allowed" // Add styles when loading
+      )}
       {...props}
-    />
-  )
+    >
+      {loading ? <Spin indicator={<LoadingOutlined spin />} size="small" /> : props.children} {/* Show loader when loading */}
+    </Comp>
+  );
 }
 
 export { Button, buttonVariants }
