@@ -64,12 +64,6 @@ const Sidebar: React.FC<Props> = ({ open, onClose, collapse, onCollapse }) => {
   ];
 
 
-  const getLinks = () => {
-    return (
-      links
-    );
-  };
-
   return (
     <div
       className={`sm:none duration-175 linear fixed z-50 flex flex-col pb-10 bg-[#f2fffe] shadow-white/5 transition-all min-h-screen ${
@@ -95,7 +89,7 @@ const Sidebar: React.FC<Props> = ({ open, onClose, collapse, onCollapse }) => {
         </div>
       </div>
 
-      {getLinks().map((link: ILink, index: number) => {
+      {links.map((link: ILink, index: number) => {
         return (
           <SidebarLink
             title={link.title}
