@@ -48,7 +48,7 @@ const Sidebar: React.FC<Props> = ({ open, onClose, collapse, onCollapse }) => {
 
   const links: ILink[] = [
     {
-      title: "ELD Logs",
+      title: "Logs",
       icon: LuLayoutDashboard,
       link: "/",
       isActive: isELDlogsActive,
