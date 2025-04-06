@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { LogEntry, Logs } from '../types/log';
 
-const BASE_URL = 'http://127.0.0.1:8000/logs';
+const BASE_URL = 'https://trip-track-backend.onrender.com/logs';
 
 export const getLogs = async (): Promise<Logs[] | null> => {
     try {

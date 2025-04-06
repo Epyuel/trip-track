@@ -7,7 +7,7 @@ export async function getRoute(
   coordinates: [number, number][]
 ): Promise<RouteResponse | null> {
   try {
-    const response = await axios.post<RouteResponse>("https://django-app-latest-e0tn.onrender.com/api/get-route/", {
+    const response = await axios.post<RouteResponse>("", {
       coordinates,
     }, {
       headers: {
