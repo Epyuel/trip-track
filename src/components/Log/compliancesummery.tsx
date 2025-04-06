@@ -53,11 +53,27 @@ export function ComplianceSummary({date,selectedDateLogs}:{date:Date,selectedDat
     const start = new Date(date);
     start.setDate(start.getDate()-8) 
     const logs = await getLogsByDateRange(start.toISOString().split("T")[0],date.toISOString().split("T")[0]);
-    
+
     if(logs) {
-      setLast8daysLogs(logs);
+      setLast8daysLogs([
+        ...logs.filter((l)=>{
+          return (
+            daysOfWeek.includes(new Date(l.date).toLocaleDateString('en-US', { weekday: 'long' }))
+            <= daysOfWeek.includes(date.toLocaleDateString('en-US', { weekday: 'long' }))
+          ) 
+        })
+      ]);
       // Filter-out the 8th day(we only want 7 days for the weeklyLogs) 
-      setWeeklyLogs(logs.filter((l)=> new Date(l.date).getTime()>start.getTime()));
+      setWeeklyLogs([
+        ...logs.filter((l)=> {
+          return (
+            new Date(l.date).getTime()>start.getTime()
+          )
+        }),
+      ]);
+    }else{
+      setLast8daysLogs([])
+      setWeeklyLogs([]);
     }
   },[date])
 
@@ -66,7 +82,32 @@ export function ComplianceSummary({date,selectedDateLogs}:{date:Date,selectedDat
   },[fetchData])
 
   useEffect(()=>{
-    const used = last8daysLogs.flatMap((log) => 
+    const isoStringDate = date.toISOString().split("T")[0]
+    const _last8daysLogs = [
+      ...last8daysLogs.filter((l)=>{
+        return (
+          l.date!=isoStringDate
+          && daysOfWeek.includes(new Date(l.date).toLocaleDateString('en-US', { weekday: 'long' }))
+          <= daysOfWeek.includes(date.toLocaleDateString('en-US', { weekday: 'long' }))
+        ) 
+      }),
+      {
+        date: isoStringDate,
+        logEntry: selectedDateLogs
+      }
+    ]
+    const _weeklyLogs = [
+      ...weeklyLogs.filter((l)=> {
+        return (
+          l.date != isoStringDate
+        )
+      }),
+      {
+        date: isoStringDate,
+        logEntry: selectedDateLogs
+      }
+    ]
+    const used = _last8daysLogs.flatMap((log) => 
       log.logEntry.map(entry => ({
           day: new Date(log.date).toLocaleDateString('en-US', { weekday: 'long' }),
           ...entry
@@ -74,7 +115,7 @@ export function ComplianceSummary({date,selectedDateLogs}:{date:Date,selectedDat
     ).reduce((acc,sl)=>acc +  (sl.status && sl.status == 1? sl.duration:0),0);
  
     const today = date.toLocaleDateString('en-US',{weekday:'long'});
-    const thisWeek = weeklyLogs.flatMap((log) => 
+    const thisWeek = _weeklyLogs.flatMap((log) => 
         log.logEntry.map(entry => ({
             day: new Date(log.date).toLocaleDateString('en-US', { weekday: 'long' }),
             ...entry
@@ -166,26 +207,6 @@ export function ComplianceSummary({date,selectedDateLogs}:{date:Date,selectedDat
     setComplianceData(complianceData)
 
   },[date, last8daysLogs, selectedDateLogs, weeklyLogs])
-
-  // Sample compliance data
-  // const complianceData = {
-    // drivingHours: {
-    //   used: 8.5,
-    //   limit: 70,
-    //   percentage: Math.round((8.5 / 70) * 100),
-    //   remaining: 2.5,
-    // },
-    // violations: [],
-    // weeklyRecap: {
-    //   monday: { hours: 10, compliant: true },
-    //   tuesday: { hours: 11, compliant: true },
-    //   wednesday: { hours: 9.5, compliant: true },
-    //   thursday: { hours: 10.5, compliant: true },
-    //   friday: { hours: 8.5, compliant: true },
-    //   saturday: { hours: 0, compliant: true },
-    //   sunday: { hours: 0, compliant: true },
-    // },
-  // }
 
   const progressVariants = {
     initial: { width: 0 },
